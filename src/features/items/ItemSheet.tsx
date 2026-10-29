@@ -36,6 +36,7 @@ function ItemForm({ item, onClose, onDelete }: { item: Item; onClose: () => void
         rows={3}
         autoFocus
         aria-label="Item text"
+        enterKeyHint="done"
         onChange={(e) => setText(e.target.value.replace(/\r?\n/g, ' '))}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
