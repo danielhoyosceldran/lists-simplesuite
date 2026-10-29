@@ -35,7 +35,7 @@ export function ListsScreen() {
       {org && project && (
         <Header
           title={project.name}
-          layoutKey={project.id}
+          badge
           color={project.color}
           back={orgPath}
           crumbs={[{ label: 'Organizations', to: '/' }, { label: org.name, to: orgPath }]}

@@ -28,7 +28,7 @@ export function ProjectsScreen() {
       {org && (
         <Header
           title={org.name}
-          layoutKey={org.id}
+          badge
           color={org.color}
           back="/"
           crumbs={[{ label: 'Organizations', to: '/' }]}

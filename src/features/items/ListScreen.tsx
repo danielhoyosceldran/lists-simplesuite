@@ -87,7 +87,7 @@ export function ListScreen() {
       {org && project && list && (
         <Header
           title={list.name}
-          layoutKey={list.id}
+          badge
           color={list.color}
           back={projectPath}
           progress={total ? checked.length / total : undefined}

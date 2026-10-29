@@ -119,11 +119,11 @@ function Card({ entity, count, progress, countLabel, href, delay, dep, onMenu }:
         onClick={() => !justDragged() && navigate(href)}
         onContextMenu={(e) => e.preventDefault()}
       >
-        <Badge id={entity.id} name={entity.name} progress={progress} />
+        <Badge name={entity.name} progress={progress} />
         <span className="card-text">
-          <motion.span className="card-title" layoutId={`title-${entity.id}`}>
+          <span className="card-title">
             {entity.name}
-          </motion.span>
+          </span>
           <span className="card-meta">
             <CountUp value={count} /> {countLabel(count)}
           </span>

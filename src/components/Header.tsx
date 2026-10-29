@@ -14,8 +14,8 @@ interface Crumb {
 interface HeaderProps {
   title: string;
   eyebrow?: string;
-  /** Entity id; shares the badge/title layout with the card that opened this screen. */
-  layoutKey?: string;
+  /** Shows the entity's badge beside the title. */
+  badge?: boolean;
   color?: ColorKey;
   back?: string;
   crumbs?: Crumb[];
@@ -28,7 +28,7 @@ interface HeaderProps {
   celebrate?: number;
 }
 
-export function Header({ title, eyebrow, layoutKey, color, back, crumbs, actions, progress, status, celebrate }: HeaderProps) {
+export function Header({ title, eyebrow, badge, color, back, crumbs, actions, progress, status, celebrate }: HeaderProps) {
   return (
     <header className="header" style={color ? accentStyle(color) : undefined}>
       <div className="header-bar">
@@ -54,11 +54,11 @@ export function Header({ title, eyebrow, layoutKey, color, back, crumbs, actions
         )}
         {eyebrow && <p className="eyebrow">{eyebrow}</p>}
         <div className="title-row">
-          {layoutKey && <Badge id={layoutKey} name={title} size="lg" progress={progress} />}
+          {badge && <Badge name={title} size="lg" progress={progress} />}
           <div className="title-stack">
-            <motion.h1 className="title" layoutId={layoutKey ? `title-${layoutKey}` : undefined}>
+            <h1 className="title">
               {title}
-            </motion.h1>
+            </h1>
             {status !== undefined && (
               <p className="title-status" aria-live="polite">
                 {status}
