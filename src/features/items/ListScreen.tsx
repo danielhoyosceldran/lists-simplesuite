@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { AnimatePresence, motion } from 'motion/react';
@@ -41,6 +41,21 @@ export function ListScreen() {
   }, [items]);
   const [ordered, setOverride] = useOptimisticOrder(unchecked);
 
+  // Completing the list (not opening an already-complete one) plays the bloom once.
+  const total = items?.length ?? 0;
+  const allDone = total > 0 && checked.length === total;
+  const [celebrate, setCelebrate] = useState(0);
+  const wasDone = useRef<boolean | null>(null);
+  const loaded = items !== undefined;
+  useEffect(() => {
+    if (!loaded) return;
+    if (wasDone.current === false && allDone) {
+      setCelebrate((c) => c + 1);
+      navigator.vibrate?.([14, 70, 24]);
+    }
+    wasDone.current = allDone;
+  }, [loaded, allDone]);
+
   const handleDelete = useCallback(
     (item: Item) => {
       deleteItem(item.id);
@@ -75,6 +90,9 @@ export function ListScreen() {
           layoutKey={list.id}
           color={list.color}
           back={projectPath}
+          progress={total ? checked.length / total : undefined}
+          status={total === 0 ? undefined : allDone ? 'All done' : `${total - checked.length} left`}
+          celebrate={celebrate}
           crumbs={[
             { label: org.name, to: `/o/${orgId}` },
             { label: project.name, to: projectPath },

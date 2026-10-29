@@ -81,6 +81,7 @@ a {
 
 .page-scroll {
   height: 100%;
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
@@ -150,10 +151,60 @@ a {
 }
 
 .title-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 14px;
   min-width: 0;
+}
+
+.title-stack {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title-status {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Completion bloom: centred on the 48px badge, clipped by nothing so it can wash over the list. */
+.bloom {
+  position: absolute;
+  left: 24px;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.bloom-wash,
+.bloom-ring {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 560px;
+  height: 560px;
+  margin: -280px 0 0 -280px;
+  border-radius: 50%;
+}
+
+.bloom-wash {
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 30%, transparent), color-mix(in srgb, var(--accent) 10%, transparent) 60%, transparent);
+}
+
+.bloom-ring {
+  width: 320px;
+  height: 320px;
+  margin: -160px 0 0 -160px;
+  border: 2px solid var(--accent);
 }
 
 .title {
@@ -270,6 +321,8 @@ a {
 /* ---------- Badge ---------- */
 
 .badge {
+  position: relative;
+  overflow: hidden;
   flex: none;
   display: grid;
   place-items: center;
@@ -280,6 +333,24 @@ a {
   color: var(--accent);
   font-weight: 700;
   font-size: 17px;
+}
+
+@property --p {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+/* The same tile in solid accent, revealed from the bottom up to the checked share. */
+.badge-fill {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: inherit;
+  background: var(--accent);
+  color: var(--on-accent);
+  clip-path: inset(clamp(0%, calc((1 - var(--p)) * 100%), 100%) 0 0 0);
 }
 
 .badge-lg {
@@ -505,8 +576,19 @@ a {
   justify-content: flex-end;
   padding-right: 20px;
   border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--danger) 30%, var(--surface));
+  color: var(--danger);
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+/* Past the threshold the colour commits, so letting go clearly means delete. */
+.item-swipe-bg[data-armed='true'] {
   background: var(--danger);
   color: #fff;
+}
+
+.item-swipe-icon {
+  display: grid;
 }
 
 .item-row {
@@ -532,19 +614,91 @@ a {
   }
 }
 
-.is-dragging .item-row {
+.is-dragging .item-row,
+.item[data-lifted] .item-row {
   background: var(--surface);
   box-shadow: var(--shadow-lg);
 }
 
-.item-dot {
+.item[data-lifted] {
+  overflow: visible;
+}
+
+.item .item-row {
+  transition: background-color 0.15s ease, box-shadow 0.35s ease;
+}
+
+.slot.is-lifted {
+  z-index: 15;
+}
+
+.item-check {
+  position: relative;
   flex: none;
-  width: 7px;
-  height: 7px;
-  margin-top: 9px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin: 2px -6.5px 0;
+}
+
+/* At rest the fill is the original 7px dot; checking swells it into a disc with a slight overshoot. */
+.item-check-fill {
+  position: absolute;
+  inset: 0;
   border-radius: 50%;
   background: var(--accent);
-  transition: background-color 0.2s ease, opacity 0.2s ease;
+  transform: scale(0.35);
+  transition: transform 0.26s cubic-bezier(0.32, 0, 0.67, 0) 0.06s, background-color 0.5s ease;
+}
+
+.item-check-mark {
+  position: relative;
+  fill: none;
+  stroke: var(--on-accent);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 0.12s ease-in;
+}
+
+/* Ink ring: only after a tap, never when a checked row merely mounts. */
+.item-check::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.item-row[data-ink] .item-check::after {
+  animation: ink-ring 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes ink-ring {
+  from {
+    transform: scale(0.7);
+    opacity: 0.7;
+  }
+  to {
+    transform: scale(2.3);
+    opacity: 0;
+  }
+}
+
+.item-row[data-checked='true'] .item-check-fill {
+  transform: scale(1);
+  background: color-mix(in srgb, var(--accent) 55%, var(--bg));
+  transition: transform 0.42s cubic-bezier(0.34, 1.4, 0.64, 1), background-color 0.6s ease 0.25s;
+}
+
+.item-row[data-checked='true'] .item-check-mark {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 0.24s cubic-bezier(0.65, 0, 0.35, 1) 0.1s;
 }
 
 .item-text {
@@ -574,10 +728,6 @@ a {
   background-size: 100% 1.5px;
 }
 
-.item-row[data-checked='true'] .item-dot {
-  background: var(--text-muted);
-  opacity: 0.45;
-}
 
 .composer {
   display: flex;
@@ -998,7 +1148,9 @@ a {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
   }
-  .item-strike {
-    transition: none;
+  .item-strike,
+  .item-check-fill,
+  .item-check-mark {
+    transition: none !important;
   }
 }

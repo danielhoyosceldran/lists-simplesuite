@@ -16,10 +16,15 @@ export function ListsScreen() {
   const org = useRecord(() => db.organizations.get(orgId), [orgId]);
   const project = useRecord(() => db.projects.get(projectId), [projectId]);
   const lists = useLiveQuery(() => getLists(projectId), [projectId]);
-  const pending = useLiveQuery(async () => {
+  const tally = useLiveQuery(async () => {
     const ids = await db.lists.where('projectId').equals(projectId).primaryKeys();
-    return countBy(await db.items.where('listId').anyOf(ids).toArray(), (i) => i.listId, (i) => !i.checked);
-  }, [projectId]) ?? {};
+    const items = await db.items.where('listId').anyOf(ids).toArray();
+    const pending = countBy(items, (i) => i.listId, (i) => !i.checked);
+    const totals = countBy(items, (i) => i.listId);
+    const progress: Record<string, number> = {};
+    for (const [id, n] of Object.entries(totals)) progress[id] = 1 - (pending[id] ?? 0) / n;
+    return { pending, progress };
+  }, [projectId]);
   const [sheet, setSheet] = useState<EntitySheetState>({ open: false });
 
   if (org === null || project === null || (project && project.organizationId !== orgId)) return <NotFound />;
@@ -45,7 +50,8 @@ export function ListsScreen() {
         <EntityCollection
           kind="list"
           entities={lists}
-          counts={pending}
+          counts={tally?.pending ?? {}}
+          progress={tally?.progress}
           countLabel={() => 'pending'}
           hrefFor={(l) => `${orgPath}/p/${projectId}/l/${l.id}`}
           onCreate={(name, color) => createList(projectId, name, color)}

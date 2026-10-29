@@ -16,6 +16,8 @@ interface EntityCollectionProps<T extends Entity> {
   /** Must be referentially stable between renders (straight from useLiveQuery). */
   entities: T[];
   counts: Record<string, number>;
+  /** Share of checked items per entity, shown as a fill in its badge. */
+  progress?: Record<string, number>;
   countLabel: (n: number) => string;
   hrefFor: (entity: T) => string;
   onCreate: (name: string, color: ColorKey) => Promise<unknown>;
@@ -25,7 +27,7 @@ interface EntityCollectionProps<T extends Entity> {
 
 /** Card grid shared by the organization, project and list screens: open, create, edit, delete, reorder. */
 export function EntityCollection<T extends Entity>(props: EntityCollectionProps<T>) {
-  const { kind, entities, counts, countLabel, hrefFor, onCreate, emptyTitle, emptyText } = props;
+  const { kind, entities, counts, progress, countLabel, hrefFor, onCreate, emptyTitle, emptyText } = props;
   const [sorted, setOverride] = useOptimisticOrder(entities);
   const [sheet, setSheet] = useState<EntitySheetState>({ open: false });
   const stagger = useStagger();
@@ -56,6 +58,7 @@ export function EntityCollection<T extends Entity>(props: EntityCollectionProps<
                   <Card
                     entity={entity}
                     count={counts[entity.id] ?? 0}
+                    progress={progress?.[entity.id]}
                     countLabel={countLabel}
                     href={hrefFor(entity)}
                     delay={stagger(i)}
@@ -89,6 +92,7 @@ export function EntityCollection<T extends Entity>(props: EntityCollectionProps<
 interface CardProps {
   entity: Entity;
   count: number;
+  progress?: number;
   countLabel: (n: number) => string;
   href: string;
   delay: number;
@@ -96,7 +100,7 @@ interface CardProps {
   onMenu: () => void;
 }
 
-function Card({ entity, count, countLabel, href, delay, dep, onMenu }: CardProps) {
+function Card({ entity, count, progress, countLabel, href, delay, dep, onMenu }: CardProps) {
   const navigate = useNavigate();
   const justDragged = useDragGuard();
   return (
@@ -115,7 +119,7 @@ function Card({ entity, count, countLabel, href, delay, dep, onMenu }: CardProps
         onClick={() => !justDragged() && navigate(href)}
         onContextMenu={(e) => e.preventDefault()}
       >
-        <Badge id={entity.id} name={entity.name} />
+        <Badge id={entity.id} name={entity.name} progress={progress} />
         <span className="card-text">
           <motion.span className="card-title" layoutId={`title-${entity.id}`}>
             {entity.name}
