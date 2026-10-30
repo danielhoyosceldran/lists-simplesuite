@@ -1,5 +1,5 @@
 import { createContext, useContext, type ReactNode } from 'react';
-import { motion, usePresenceData, useReducedMotion, type Transition, type Variants } from 'motion/react';
+import { motion, useIsPresent, usePresenceData, useReducedMotion, type Transition, type Variants } from 'motion/react';
 
 /** 1 = navigating deeper, -1 = going back, 0 = first load. */
 export const DirectionContext = createContext(0);
@@ -9,6 +9,10 @@ export const DirectionContext = createContext(0);
  * parent recedes a third of the way with parallax and sinks under a dim. Going back peels the sheet
  * off to the right. Both pages share one spring so they move as a single physical system.
  * Wide screens travel a shorter distance and crossfade; reduced motion crossfades only.
+ *
+ * Variants only move pixels. Blocking input on a leaving page is presence state, not a variant:
+ * a page that is navigated back to mid-exit re-enters the same element, and a style set by `exit`
+ * would survive into `center` and leave the only page on screen deaf to taps.
  */
 const stack = (wide: boolean): Variants => ({
   enter: (dir: number) =>
@@ -20,14 +24,14 @@ const stack = (wide: boolean): Variants => ({
   center: { x: 0, opacity: 1 },
   exit: (dir: number) =>
     dir >= 0
-      ? { x: wide ? '-6%' : '-30%', opacity: wide ? 0 : 1, zIndex: 1, pointerEvents: 'none' }
-      : { x: wide ? '12%' : '100%', opacity: wide ? 0 : 1, zIndex: 2, pointerEvents: 'none' },
+      ? { x: wide ? '-6%' : '-30%', opacity: wide ? 0 : 1, zIndex: 1 }
+      : { x: wide ? '12%' : '100%', opacity: wide ? 0 : 1, zIndex: 2 },
 });
 
 const fade: Variants = {
   enter: { opacity: 0 },
   center: { opacity: 1 },
-  exit: { opacity: 0, pointerEvents: 'none' },
+  exit: { opacity: 0 },
 };
 
 /** The parent page darkens as it is covered and brightens as it is uncovered. */
@@ -51,6 +55,8 @@ export function Page({ children }: { children: ReactNode }) {
   const presenceDir = usePresenceData() as number | undefined;
   const contextDir = useContext(DirectionContext);
   const dir = presenceDir ?? contextDir;
+  // Inert while leaving: no taps, focus or screen-reader reach. Cleared the moment the page re-enters.
+  const present = useIsPresent();
   const reduced = useReducedMotion();
   const variants = reduced ? fade : stack(isWide());
   return (
@@ -62,6 +68,7 @@ export function Page({ children }: { children: ReactNode }) {
       animate="center"
       exit="exit"
       transition={dir < 0 ? pop : push}
+      inert={!present}
     >
       <motion.main className="page-scroll" layoutScroll>
         <div className="page-inner">{children}</div>
